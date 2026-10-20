@@ -1,0 +1,19 @@
+{
+  "page": {"width_px": 800, "height_px": 320, "mm_per_px": 0.25},
+  "shapes": [
+    {"id": "canvas", "x": 0, "y": 0, "w": 800, "h": 320, "kind": "rect", "fill": "#ffffff", "line": null, "radius": 0},
+    {"id": "input_card", "x": 40, "y": 110, "w": 290, "h": 140, "kind": "rect", "fill": "#edf5fc", "line": "#c6dcec", "radius": 12},
+    {"id": "output_card", "x": 470, "y": 110, "w": 290, "h": 140, "kind": "rect", "fill": "#eef8f8", "line": "#c7e0e4", "radius": 12},
+    {"id": "badge", "x": 60, "y": 130, "w": 40, "h": 40, "kind": "ellipse", "fill": "#1977bb", "line": null, "radius": 0}
+  ],
+  "texts": [
+    {"id": "title", "text": "Editable workflow / 可编辑流程示例", "x": 20, "y": 20, "w": 760, "h": 60, "size": 30, "bold": true, "color": "#06254a", "align": "center"},
+    {"id": "step_number", "text": "1", "x": 60, "y": 130, "w": 40, "h": 40, "size": 24, "bold": true, "color": "#ffffff", "align": "center"},
+    {"id": "input_label", "text": "Source review", "x": 115, "y": 130, "w": 200, "h": 45, "size": 24, "bold": true, "color": "#06254a", "align": "left"},
+    {"id": "output_label", "text": "Reviewed output", "x": 490, "y": 150, "w": 250, "h": 50, "size": 24, "bold": true, "color": "#06254a", "align": "center"}
+  ],
+  "icons": [],
+  "arrows": [
+    {"id": "flow", "points": [[335, 180], [465, 180]], "kind": "line", "color": "#4e759a", "weight": 3, "head": true}
+  ]
+}

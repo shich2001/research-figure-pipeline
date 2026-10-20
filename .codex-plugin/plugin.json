@@ -1,7 +1,7 @@
 {
   "name": "research-figure-pipeline",
-  "version": "0.1.0+codex.20260605014609",
-  "description": "End-to-end publication research figure workflow using ChatGPT image2 modules and local Visio COM assembly.",
+  "version": "0.2.0",
+  "description": "Editable research figures with independent transparent illustrations and native Visio elements. Derived from Fu Jincheng's original workflow.",
   "author": {
     "name": "Fu Jincheng"
   },
@@ -14,19 +14,19 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Research Figure Pipeline",
-    "shortDescription": "Create paper-ready figures with ChatGPT image2 modules and local Visio COM.",
-    "longDescription": "Build publication-quality research figures end to end for SCI papers, top-tier conference papers, theses, and technical reports across disciplines: extract factual paper data, create a ChatGPT image2 overall master, show it to the user for approval, revise the full master until approved, then decompose it into modules and regenerate each module separately with ChatGPT image2 for clarity. Final assembly, arrows, alignment, and export must happen visibly in the user's local Microsoft Visio through PowerShell COM for 1:1 reproduction of the approved master.",
-    "developerName": "Fu Jincheng",
+    "displayName": "Research Figure Pipeline — Editable Elements",
+    "shortDescription": "Transparent illustrations and native editable Visio elements.",
+    "longDescription": "Fork maintained by shich2001, based on Fu Jincheng's Research Figure Pipeline. Preserves approved-master review and visible local Visio assembly, adds independent transparent illustrations, native editable cards/text/arrows, a reusable renderer and structural validation.",
+    "developerName": "Fu Jincheng (original); shich2001 (fork)",
     "category": "Productivity",
     "capabilities": [
       "Write",
       "Interactive"
     ],
     "defaultPrompt": [
-      "Use Research Figure Pipeline to make an approved master then VSDX.",
-      "Turn this manuscript into image2 modules and a VSDX.",
-      "Optimize this Visio research figure for readability."
+      "Create an approved research master, then an editable native Visio figure.",
+      "Separate illustrations from editable cards, labels and arrows.",
+      "Check both visual quality and Visio object editability."
     ],
     "brandColor": "#2563EB"
   }

@@ -1,393 +1,102 @@
-# Research Figure Pipeline
+# Research Figure Pipeline — Editable Elements
 
-**Language / 语言**: [中文](#中文说明) | [English](#english-readme)
+**科研绘图：独立透明插画 + Visio 原生可编辑元素**
 
----
+## 来源与致谢 / Attribution
 
-<a id="中文说明"></a>
+本仓库是 [FuJincheng-01/research-figure-pipeline](https://github.com/FuJincheng-01/research-figure-pipeline) 的衍生 fork，原作者为 **Fu Jincheng**。原项目建立了“生成总图 → 用户确认 → 分模块生成 → 本地可见 Visio COM 组装”的流程。本 fork 由 **shich2001** 维护，在该流程上增加元素级可编辑性、通用组装脚本和结构校验；不代表原作者或原项目的官方版本。
 
-# Research Figure Pipeline（科研绘图插件）
+This is a derivative fork of **Fu Jincheng's [Research Figure Pipeline](https://github.com/FuJincheng-01/research-figure-pipeline)**, maintained by **shich2001**. It retains the original master-approval and visible local Visio workflow and adds element-level editability. It is not an official upstream release. The original copyright notice and [MIT license](LICENSE) are retained.
 
-一个用于绘制论文级科研图的 Codex 插件和 skill。它采用严格的两阶段流程：
+仓库名与 skill 调用名继续使用 `research-figure-pipeline`，展示名称增加 **Editable Elements**，便于识别功能差异。
 
-1. 先使用 ChatGPT image2 生成整张参考图，并让用户审核确认；
-2. 用户确认整体方案后，再把整图拆成多个清晰模块分别重新生图；
-3. 最后通过 Windows 本机 Microsoft Visio + PowerShell COM 完成可编辑 `.vsdx` 组装、箭头连接、对齐和导出。
+## 改进内容
 
-这个项目面向通用科研绘图场景，适合 SCI 论文、顶会会议论文、学位论文和技术报告中的数据集构建图、实验流程图、方法框架图、系统架构图、模型结构图、数据处理图、实验装置图、结果分析图和多模块综合示意图。它适用于计算机、工程、材料、医学、生物、化学、物理、环境、管理等多个领域。核心思路是：AI 生图负责把每个模块画得专业、清晰且风格统一，Visio 负责最终排版、箭头关系和论文可编辑文件。
+| 内容 | 本 fork 的默认交付 |
+| --- | --- |
+| 背景、卡片、边框、编号圆圈 | 独立 Visio 原生形状 |
+| 标题、文字、数据、编号 | 独立原生文本 |
+| 箭头、分支与汇合 | 原生线段 |
+| 人物、设备等复杂插画 | 独立透明 PNG，按需分别移动、缩放和替换 |
+| 真实样本、截图、数据图 | 保留真实来源；允许不透明背景 |
 
-## 重要限制
+禁止默认把整列或整张图作为最终图片模块。生成插画的内部仍然是位图，不能逐笔编辑；包裹 PNG 的 SVG 也不会自动变成矢量。独立对象不等于自动布局：当前通用脚本的箭头是线段，移动节点后可能需要调整连线。
 
-这不是一个独立的通用生图程序。
+## 使用流程
 
-- 主要支持在 Codex 中使用，因为它依赖 Codex 的 ChatGPT image2 生图能力。
-- 最终组装需要 Windows + Microsoft Visio。
-- 最终布局、对齐、箭头和导出必须通过本机 Visio + PowerShell COM 完成。
-- draw.io、PowerPoint、浏览器 canvas、matplotlib、单独 SVG/PNG/PDF 拼图只能作为中间准备步骤，不能作为最终组装路径。
-- 如果 Visio 没有打开，流程会要求通过 COM 自动启动 `Visio.Application`，并设置为可见。
+1. 从授权论文正文提取研究事实与数据。
+2. 生成总图，确认布局和风格。
+3. 用户确认后，拆分原生元素和独立插画；已有确认无需重复询问。
+4. 单独生成透明插画，保留真实样本。
+5. 编写组装 JSON，在本地可见 Visio 中创建可编辑对象。
+6. 检查导出预览，并校验透明度和 VSDX 对象结构。
 
-## 仓库内容
+总图确定外观，JSON 描述对象，Visio 完成最终组装。支持不同研究和布局，不内置任何真实研究的内容或数据。
 
-```text
-.codex-plugin/
-  plugin.json
-skills/
-  research-figure-pipeline/
-    SKILL.md
-    agents/openai.yaml
-    references/checklists.md
-    scripts/split_modules.py
-    scripts/compare_previews.py
-```
+## 环境与安装
 
-`.codex-plugin` 是 Codex 插件封装，`skills/research-figure-pipeline` 是可单独安装的 skill。
+- Codex 或具备相应工具的环境，需要图像生成能力。
+- Windows + 本地 Microsoft Visio；Windows PowerShell 5.1 用于 COM。
+- Python 3.10+ 和 Pillow：`python -m pip install Pillow`。
 
-## 核心流程
-
-这个 skill 会强制执行下面的绘图顺序：
-
-1. 阅读论文、PDF、LaTeX 源码或手稿材料。
-2. 先提取真实内容：标签、数量、类别顺序、公式、标注类型、方法名、总数和真实样例图。
-3. 使用 ChatGPT image2 生成一张完整 master 图。
-4. 把 master 图展示给用户，并等待用户明确确认。
-5. 如果用户提出修改意见，就重新生成整张 master 图并再次确认。
-6. 只有在用户确认 master 图无误后，才拆解成多个模块。
-7. 每个模块再单独调用 ChatGPT image2 重新生成，提升清晰度。
-8. 对于缺陷图、实验截图、样本图等关键内容，使用论文或用户提供的真实图片替换生成图。
-9. 使用本机 Microsoft Visio + PowerShell COM 组装所有模块。
-10. 跨模块箭头、连接关系、对齐和最终导出都在 Visio 中完成。
-11. 从 Visio 导出预览图，并检查是否和用户确认过的 master 图 1:1 对齐、文字是否清晰。
-
-核心规则：
-
-```text
-ChatGPT image2 负责生成视觉模块；Visio 负责组装模块关系。
-```
-
-## 快速安装为 Codex 插件
-
-克隆仓库并运行安装脚本：
+### 安装为 skill
 
 ```powershell
-git clone https://github.com/FuJincheng-01/research-figure-pipeline.git
-cd research-figure-pipeline
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+git clone https://github.com/shich2001/research-figure-pipeline.git
+Copy-Item -LiteralPath .\research-figure-pipeline\skills\research-figure-pipeline -Destination "$env:USERPROFILE\.codex\skills" -Recurse
 ```
 
-安装脚本会：
+若已有同名 skill，先备份后更新该目录，避免安装两个同名版本。新对话中使用：
 
-- 在需要时把插件复制到 `%USERPROFILE%\plugins\research-figure-pipeline`；
-- 创建或更新 `%USERPROFILE%\.agents\plugins\marketplace.json`；
-- 把插件加入 personal marketplace；
-- 如果能找到 Codex CLI，则自动执行 `codex plugin add research-figure-pipeline@personal`。
+```text
+使用 $research-figure-pipeline，根据我的论文制作可微调科研流程图。
+先确认总图；背景、卡片、文字、编号和箭头使用原生对象，
+复杂插画生成独立透明素材，最后交付 VSDX 和预览。
+```
 
-安装后请新开一个 Codex 对话，让 Codex 加载新的插件和 skill 元数据。
+### 插件安装
 
-## 手动安装为 Codex 插件
+仓库保留上游 `install.ps1` 和插件封装。运行 `powershell -NoProfile -File .\install.ps1` 会复制插件、更新个人 marketplace，并在找到 Codex CLI 时执行插件安装。已安装独立 skill 的用户无需再重复安装插件。
 
-把仓库克隆到本地插件目录：
+## 通用组装与校验
+
+格式见 [assembly-spec.md](skills/research-figure-pipeline/references/assembly-spec.md)，虚构示例见 [editable-example.json](skills/research-figure-pipeline/references/editable-example.json)。
 
 ```powershell
-cd $env:USERPROFILE\plugins
-git clone https://github.com/FuJincheng-01/research-figure-pipeline.git
+$skill = ".\skills\research-figure-pipeline"
+python "$skill\scripts\validate_editability.py" .\figure\assembly_spec.json
+powershell -NoProfile -File "$skill\scripts\assemble_visio.ps1" -SpecPath .\figure\assembly_spec.json -OutputStem .\figure\figure-v1 -Python python
+python "$skill\scripts\validate_editability.py" .\figure\assembly_spec.json --vsdx .\figure\figure-v1.vsdx --report .\figure\validation.json
 ```
 
-确认 personal marketplace 文件中存在下面这个条目：
+输出目录须已存在。组装器新建 Visio 文档，拒绝覆盖已有 VSDX/PNG/SVG/PDF；修改后请使用新输出名。手工修改 VSDX 不会回写 JSON。PNG/PDF/SVG 为导出文件，以 VSDX 作为微调源文件。
+
+校验器检查真实 alpha、图片比例、对象 ID、原生文本和图片类型、预期箭头线段。它不能判断研究事实、图片是否误带背景卡片或版式是否美观，仍须人工/视觉检查。
+
+## 项目文件
 
 ```text
-%USERPROFILE%\.agents\plugins\marketplace.json
+.codex-plugin/plugin.json       插件信息与上游作者信息
+skills/research-figure-pipeline/
+  SKILL.md                     默认工作流和可编辑性约定
+  agents/openai.yaml           展示名称与默认调用
+  references/
+    editable-assets.md         素材边界、透明提示词和编辑限制
+    assembly-spec.md            JSON 数据格式与执行方式
+    editable-example.json      虚构原生对象示例
+    checklists.md              视觉与结构验收
+  scripts/
+    assemble_visio.ps1          通用 Visio COM 组装
+    validate_editability.py     素材与 VSDX 结构校验
+    split_modules.py            参考裁图和 PNG 包装 SVG
+    compare_previews.py         可选的像素差异诊断
+tests/                         结构校验的行为测试
 ```
 
-```json
-{
-  "name": "research-figure-pipeline",
-  "source": {
-    "source": "local",
-    "path": "./plugins/research-figure-pipeline"
-  },
-  "policy": {
-    "installation": "AVAILABLE",
-    "authentication": "ON_INSTALL"
-  },
-  "category": "Productivity"
-}
-```
+## English overview
 
-然后执行：
+Create publication-style figures with independently editable native Visio backgrounds, cards, labels, badges and arrows, plus isolated transparent raster illustrations. Approve the master first, preserve its layout and source facts, then assemble visibly through local Microsoft Visio COM.
 
-```powershell
-codex plugin add research-figure-pipeline@personal
-```
+The reusable JSON renderer refuses existing output paths and never clears a user's existing document. The validator checks actual alpha transparency, aspect ratio and expected native/image/text/arrow objects. It does not prove scientific correctness or visual quality. Generated illustrations remain raster, and line segments are not glued connectors. Use a new output stem for rebuilds to preserve manual edits.
 
-安装后请新开一个 Codex 对话。
-
-## 单独安装为 Skill
-
-如果不需要插件封装，只想安装 skill，可以复制 skill 文件夹：
-
-```powershell
-Copy-Item `
-  "$env:USERPROFILE\plugins\research-figure-pipeline\skills\research-figure-pipeline" `
-  "$env:USERPROFILE\.codex\skills\research-figure-pipeline" `
-  -Recurse -Force
-```
-
-然后在新的 Codex 对话中调用：
-
-```text
-Use $research-figure-pipeline to create a publication-ready research figure from my paper materials.
-```
-
-## 示例 Prompt
-
-```text
-Use $research-figure-pipeline to draw a dataset construction figure for this paper.
-First generate a full master image with ChatGPT image2 and wait for my approval.
-After I approve it, regenerate each module separately and assemble the final VSDX through visible Visio COM.
-```
-
-```text
-Use $research-figure-pipeline to convert this method section into a publication-style pipeline figure.
-Use real sample images where I provide them.
-Final output must be a Visio .vsdx plus a Visio-exported preview.
-```
-
-## 典型输出
-
-一次完整绘图通常会产出：
-
-```text
-figure_name_master.png
-figure_name_preview.png
-figure_name.vsdx
-figure_name_workflow.md
-assets/
-  modules/
-    header.png
-    module_1.png
-    module_1.svg
-    module_2.png
-    module_2.svg
-  real_samples/
-tools/
-  split_modules.py
-  rebuild_visio_com.ps1
-```
-
-## Visio COM 要求
-
-最终组装应该使用 PowerShell COM，基本模式如下：
-
-```powershell
-try {
-  $visio = [Runtime.InteropServices.Marshal]::GetActiveObject("Visio.Application")
-} catch {
-  $visio = New-Object -ComObject Visio.Application
-}
-$visio.Visible = $true
-```
-
-用户应能看到 Visio 打开并执行组装。最终 `.vsdx` 和预览图应该来自 Visio，而不是来自外部 PNG/SVG 拼图程序。
-
-## 关于 SVG 和 PNG
-
-部分 Visio 版本可以导入包含嵌入 PNG 的 SVG，但导出时会变空白。遇到这种情况时，可以保留 SVG wrapper 作为附属资产，但最终 Visio 图中建议导入 PNG 模块以保证视觉一致性。
-
-## 许可证
-
-MIT License。见 [LICENSE](LICENSE)。
-
----
-
-# English README
-
-# Research Figure Pipeline
-
-A Codex plugin and skill for building publication-style research figures with a strict two-stage workflow:
-
-1. generate and approve a full reference figure with ChatGPT image2,
-2. regenerate the approved figure as clear modules,
-3. assemble the final editable/exportable figure in Microsoft Visio through PowerShell COM.
-
-This project is designed as a general research-figure workflow for SCI papers, top-tier conference papers, theses, and technical reports across disciplines. It is useful for dataset construction diagrams, experimental workflows, method frameworks, system architectures, model structures, data-processing pipelines, experimental setups, result-analysis diagrams, and multi-module scientific schematics in fields such as computer science, engineering, materials science, medicine, biology, chemistry, physics, environmental science, and management. The core idea is that AI generation creates professional, clear, style-consistent modules, while Visio handles final layout, arrows, relationships, and editable paper-ready files.
-
-## Important Limitations
-
-This is not a standalone image-generation program.
-
-- It is designed for Codex because it relies on Codex's ChatGPT image2 image-generation capability.
-- It requires Microsoft Visio on Windows for the final assembly path.
-- Final layout, alignment, arrows, and export must be done through local Visio controlled by PowerShell COM.
-- Other tools such as draw.io, PowerPoint, browser canvas, matplotlib, or standalone SVG/PNG/PDF composition are allowed only as intermediate preparation, not as the final figure assembly path.
-- If Visio is not open, the workflow should start `Visio.Application` automatically through COM and set it visible.
-
-## What Is Included
-
-```text
-.codex-plugin/
-  plugin.json
-skills/
-  research-figure-pipeline/
-    SKILL.md
-    agents/openai.yaml
-    references/checklists.md
-    scripts/split_modules.py
-    scripts/compare_previews.py
-```
-
-The plugin wraps the skill for Codex plugin usage. The skill can also be installed standalone.
-
-## Core Workflow
-
-The skill enforces this sequence:
-
-1. Read the paper, PDF, LaTeX source, or manuscript material.
-2. Extract factual figure content first: labels, counts, class order, equations, annotation type, operators, totals, and real sample images.
-3. Generate one full-width master visual with ChatGPT image2.
-4. Show the master to the user and wait for explicit approval.
-5. If the user requests changes, regenerate the full master and ask again.
-6. Only after approval, decompose the approved master into modules.
-7. Regenerate each module separately with ChatGPT image2 for higher clarity.
-8. Replace critical generated samples with real paper/user-provided images when needed.
-9. Assemble the regenerated modules in local Microsoft Visio through PowerShell COM.
-10. Draw cross-module arrows in Visio.
-11. Export a preview from Visio and verify readability and 1:1 fidelity against the approved master.
-
-The central rule is:
-
-```text
-ChatGPT image2 builds visual modules; Visio assembles relationships.
-```
-
-## Quick Install As A Codex Plugin
-
-Clone this repository and run the installer:
-
-```powershell
-git clone https://github.com/FuJincheng-01/research-figure-pipeline.git
-cd research-figure-pipeline
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-The installer will:
-
-- copy the plugin to `%USERPROFILE%\plugins\research-figure-pipeline` when needed,
-- create or update `%USERPROFILE%\.agents\plugins\marketplace.json`,
-- add the plugin entry to the personal marketplace,
-- run `codex plugin add research-figure-pipeline@personal` if the Codex CLI is available.
-
-Open a new Codex thread after installation so the plugin and skill metadata are loaded.
-
-## Manual Install As A Codex Plugin
-
-Clone this repository into your local plugin directory:
-
-```powershell
-cd $env:USERPROFILE\plugins
-git clone https://github.com/FuJincheng-01/research-figure-pipeline.git
-```
-
-Make sure your personal Codex marketplace has an entry like this in:
-
-```text
-%USERPROFILE%\.agents\plugins\marketplace.json
-```
-
-```json
-{
-  "name": "research-figure-pipeline",
-  "source": {
-    "source": "local",
-    "path": "./plugins/research-figure-pipeline"
-  },
-  "policy": {
-    "installation": "AVAILABLE",
-    "authentication": "ON_INSTALL"
-  },
-  "category": "Productivity"
-}
-```
-
-Then install from the personal marketplace:
-
-```powershell
-codex plugin add research-figure-pipeline@personal
-```
-
-Open a new Codex thread so the updated plugin and skill metadata are loaded.
-
-## Install As A Standalone Skill
-
-If you only want the skill without the plugin wrapper, copy the skill folder:
-
-```powershell
-Copy-Item `
-  "$env:USERPROFILE\plugins\research-figure-pipeline\skills\research-figure-pipeline" `
-  "$env:USERPROFILE\.codex\skills\research-figure-pipeline" `
-  -Recurse -Force
-```
-
-Then open a new Codex thread and invoke:
-
-```text
-Use $research-figure-pipeline to create a publication-ready research figure from my paper materials.
-```
-
-## Example Prompts
-
-```text
-Use $research-figure-pipeline to draw a dataset construction figure for this paper.
-First generate a full master image with ChatGPT image2 and wait for my approval.
-After I approve it, regenerate each module separately and assemble the final VSDX through visible Visio COM.
-```
-
-```text
-Use $research-figure-pipeline to convert this method section into a publication-style pipeline figure.
-Use real sample images where I provide them.
-Final output must be a Visio .vsdx plus a Visio-exported preview.
-```
-
-## Expected Outputs
-
-A typical run should produce:
-
-```text
-figure_name_master.png
-figure_name_preview.png
-figure_name.vsdx
-figure_name_workflow.md
-assets/
-  modules/
-    header.png
-    module_1.png
-    module_1.svg
-    module_2.png
-    module_2.svg
-  real_samples/
-tools/
-  split_modules.py
-  rebuild_visio_com.ps1
-```
-
-## Visio COM Requirement
-
-The final assembly should use PowerShell COM with the following pattern:
-
-```powershell
-try {
-  $visio = [Runtime.InteropServices.Marshal]::GetActiveObject("Visio.Application")
-} catch {
-  $visio = New-Object -ComObject Visio.Application
-}
-$visio.Visible = $true
-```
-
-The user should be able to see Visio open and the figure being assembled when practical. The final `.vsdx` and preview should come from Visio, not from an external raster/SVG compositor.
-
-## Notes On SVG And PNG
-
-Some Visio versions import SVG files containing embedded PNG images but export them blank. If that happens, keep SVG wrappers as supporting assets, but use PNG module imports for the final visible Visio figure. This preserves the 1:1 visual fidelity of the approved master.
-
-## License
-
-MIT License. See [LICENSE](LICENSE).
+Requires Windows, Microsoft Visio, Windows PowerShell 5.1, Python 3.10+ and Pillow. The skill name remains `$research-figure-pipeline`. See the attribution above and the retained [MIT license](LICENSE).
