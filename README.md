@@ -36,6 +36,7 @@ This is a derivative fork of **Fu Jincheng's [Research Figure Pipeline](https://
 ## 环境与安装
 
 - Codex 或具备相应工具的环境，需要图像生成能力。
+- WorkBuddy：在其会话内发现并使用内置生图/抠图工具，读取真实参数后调用。不会自动改用外部 OpenAI、Google 或其他付费接口；内置工具也可能消耗积分，底层模型未披露时会如实标注。
 - Windows + 本地 Microsoft Visio；Windows PowerShell 5.1 用于 COM。
 - Python 3.10+ 和 Pillow：`python -m pip install Pillow`。
 
@@ -57,6 +58,28 @@ Copy-Item -LiteralPath .\research-figure-pipeline\skills\research-figure-pipelin
 ### 插件安装
 
 仓库保留上游 `install.ps1` 和插件封装。运行 `powershell -NoProfile -File .\install.ps1` 会复制插件、更新个人 marketplace，并在找到 Codex CLI 时执行插件安装。已安装独立 skill 的用户无需再重复安装插件。
+
+### WorkBuddy 安装与试跑（0.3.0）
+
+在仓库根目录执行：
+
+```powershell
+python .\scripts\package_workbuddy.py .\dist\research-figure-pipeline-workbuddy.zip
+```
+
+在 WorkBuddy 的技能管理中选择添加/导入本地技能包，导入该 ZIP。包保留原作者与 MIT 许可，并补充 WorkBuddy 文档要求的版本、作者及中英文描述字段。`install.ps1` 是 Codex 插件安装器，不用于 WorkBuddy。重复打包请使用新文件名。
+
+在 WorkBuddy 新会话中发送：
+
+```text
+使用 research-figure-pipeline 做一次 WorkBuddy 生图小测试。
+按 references/workbuddy-smoke-test.md 执行：先发现内置生图和抠图工具并读取参数，
+只生成一张“护士使用笔记本电脑咨询平台”的独立插画，必要时抠图一次。
+不接外部 OpenAI 或 Google 服务。保存原图、透明 PNG 和测试报告，
+检查真实 alpha 与画面；缺少工具就明确报告，不模拟成功。
+```
+
+该适配依赖 WorkBuddy 当前会话的真实工具能力，不是独立的生图 MCP 服务。包结构校验通过不等于生图已实测；只有成功调用、保存并检查图片后才算测试通过。宿主与来源说明见 [image-providers.md](skills/research-figure-pipeline/references/image-providers.md)。完整科研图仍先确认总图，再生成正式素材与组装 Visio。
 
 ## 通用组装与校验
 
@@ -85,12 +108,15 @@ skills/research-figure-pipeline/
     assembly-spec.md            JSON 数据格式与执行方式
     editable-example.json      虚构原生对象示例
     checklists.md              视觉与结构验收
+    image-providers.md         Codex/WorkBuddy 工具发现与能力边界
+    workbuddy-smoke-test.md    单张生成与透明素材测试
   scripts/
     assemble_visio.ps1          通用 Visio COM 组装
     validate_editability.py     素材与 VSDX 结构校验
     split_modules.py            参考裁图和 PNG 包装 SVG
     compare_previews.py         可选的像素差异诊断
 tests/                         结构校验的行为测试
+scripts/package_workbuddy.py   构建含 WorkBuddy 元数据的本地技能包
 ```
 
 ## English overview

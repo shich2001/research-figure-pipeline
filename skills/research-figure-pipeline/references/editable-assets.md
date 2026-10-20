@@ -18,7 +18,7 @@ If a user might move, resize, recolor or reword an element without changing its 
 
 Generate ONE isolated [illustration] using the approved master only as a style reference. Match its palette, line language and visual density. Use a genuinely transparent alpha background and comfortable transparent padding. Include only [required objects]. No panel background, card, frame, label, heading, number, watermark or process arrow. Keep all extremities visible. This illustration will be placed independently beside native Visio text and shapes.
 
-Set the image tool's transparent-background option, not only the prompt text. Do not remove white pixels indiscriminately: white clothing and object interiors are meaningful content.
+If the actual tool schema exposes a transparent-background option, set it as well as describing transparency in the prompt. Otherwise generate an isolated subject, then use an available background-removal tool following [image-providers.md](image-providers.md). A prompt alone does not prove transparency. Do not remove white pixels indiscriminately: white clothing and object interiors are meaningful content.
 
 ## Inspect before importing
 

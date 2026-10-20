@@ -7,6 +7,8 @@
 - Real samples and measured results retain their provenance.
 
 ## Assets
+- Record the host, actual tool names and model if disclosed; mark an undisclosed model as unknown.
+- Respect provider restrictions and report unsupported capabilities without inventing tool calls.
 - Each illustration has the correct meaning and style.
 - Each generated icon has real alpha transparency and visible foreground.
 - No background card, title, count or process arrow is baked into generated icons.

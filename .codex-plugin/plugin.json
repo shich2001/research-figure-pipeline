@@ -1,6 +1,6 @@
 {
   "name": "research-figure-pipeline",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Editable research figures with independent transparent illustrations and native Visio elements. Derived from Fu Jincheng's original workflow.",
   "author": {
     "name": "Fu Jincheng"
